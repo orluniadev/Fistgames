@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OrluCodex</title>
+
+<meta name="description" content="Le manuel in-game du serveur Rust La Fistinière : son architecture reprise de SCUM, et ce qu'il y a à rédiger.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#A8381F">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="OrluCodex — manuel in-game">
+<meta property="og:description" content="Brief staff : trois systèmes repris de SCUM, et une soixantaine d'articles à écrire.">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary">
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23A8381F'/%3E%3Cpath d='M20 14h24v36l-12-8-12 8z' fill='%23fff'/%3E%3C/svg%3E">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=IBM+Plex+Sans:wght@400;400i;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --ground:   #F2EFEB;
+    --panel:    #FFFFFF;
+    --panel-2:  #EAE5DF;
+    --line:     #D9D2C9;
+    --line-soft:#E6E0D8;
+    --ink:      #1B1917;
+    --ink-2:    #5E574F;
+    --ink-3:    #8A827A;
+    --accent:   #A8381F;
+    --ok:       #4C6B3C;
+
+    --display: "Oswald", "Arial Narrow", sans-serif;
+    --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
+
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:   #131211;
+      --panel:    #1C1A18;
+      --panel-2:  #252220;
+      --line:     #363230;
+      --line-soft:#2A2725;
+      --ink:      #E7E2D9;
+      --ink-2:    #A79F95;
+      --ink-3:    #7C746B;
+      --accent:   #DB5B3D;
+      --ok:       #8FB06F;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:   #131211;
+    --panel:    #1C1A18;
+    --panel-2:  #252220;
+    --line:     #363230;
+    --line-soft:#2A2725;
+    --ink:      #E7E2D9;
+    --ink-2:    #A79F95;
+    --ink-3:    #7C746B;
+    --accent:   #DB5B3D;
+    --ok:       #8FB06F;
+  }
+
+  * { box-sizing: border-box; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 780px;
+    margin-inline: auto;
+    padding-inline: 20px;
+    padding-block: 56px 72px;
+  }
+
+  /* ---------- bascule de thème ---------- */
+
+  .theme {
+    position: fixed;
+    top: env(safe-area-inset-top, 0px);
+    right: 0;
+    margin: 14px;
+    z-index: 10;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    padding: 7px 11px;
+    cursor: pointer;
+  }
+  .theme:hover { color: var(--accent); border-color: var(--accent); }
+  .theme:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- en-tête ---------- */
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 18px;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(42px, 9vw, 64px);
+    line-height: .98;
+    letter-spacing: -.01em;
+    text-transform: uppercase;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  h1 .tail { color: var(--accent); }
+
+  .lede {
+    font-size: 19px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    max-width: 60ch;
+    margin: 22px 0 0;
+  }
+
+  .rule {
+    height: 3px;
+    background: var(--accent);
+    width: 68px;
+    margin: 34px 0 0;
+  }
+
+  /* ---------- sections ---------- */
+
+  section { margin-top: 60px; }
+
+  h2 {
+    font-family: var(--display);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    font-size: 15px;
+    color: var(--ink-3);
+    margin: 0 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  h3 {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: 21px;
+    letter-spacing: .01em;
+    margin: 0 0 8px;
+    text-wrap: balance;
+  }
+
+  p { margin: 0 0 14px; max-width: 65ch; }
+  p:last-child { margin-bottom: 0; }
+
+  strong { font-weight: 600; }
+  em { color: var(--ink-2); }
+
+  code {
+    font-family: var(--mono);
+    font-size: .875em;
+    background: var(--panel-2);
+    border: 1px solid var(--line-soft);
+    border-radius: 3px;
+    padding: .08em .34em;
+    word-break: break-word;
+  }
+
+  /* ---------- les trois briques ---------- */
+
+  .bricks {
+    display: grid;
+    gap: 2px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+
+  .brick {
+    background: var(--panel);
+    padding: 22px 22px 24px;
+  }
+
+  .brick .tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .12em;
+    color: var(--accent);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 9px;
+  }
+
+  .brick p { font-size: 15px; color: var(--ink-2); margin: 0; }
+  .brick p + p { margin-top: 10px; }
+
+  /* ---------- maquette d'écran ---------- */
+
+  .mock {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    font-family: var(--mono);
+    font-size: 12px;
+    overflow: hidden;
+  }
+
+  .mock-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 14px;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--line);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    font-size: 11px;
+    color: var(--ink-2);
+  }
+
+  .mock-body { display: grid; grid-template-columns: 38% 62%; min-height: 220px; }
+  .mock-left { border-right: 1px solid var(--line); padding: 14px 0; }
+  .mock-right { padding: 16px 18px; }
+
+  .mock-tabs { display: flex; gap: 2px; padding: 0 12px 12px; }
+  .mock-tabs span {
+    flex: 1;
+    text-align: center;
+    padding: 5px 0;
+    border: 1px solid var(--line);
+    color: var(--ink-3);
+    font-size: 10px;
+    letter-spacing: .08em;
+  }
+  .mock-tabs span.on {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .mock-search {
+    margin: 0 12px 12px;
+    padding: 5px 8px;
+    border: 1px solid var(--line);
+    color: var(--ink-3);
+    font-size: 11px;
+  }
+
+  .mock-item { padding: 5px 12px; color: var(--ink-2); }
+  .mock-item.sel { background: var(--panel-2); color: var(--ink); border-left: 2px solid var(--accent); padding-left: 10px; }
+  .mock-item.sub { padding-left: 26px; color: var(--ink-3); font-size: 11px; }
+
+  .mock-pin {
+    margin: 14px 12px 0;
+    padding: 7px 9px;
+    border: 1px dashed var(--line);
+    color: var(--ink-2);
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+  }
+  .mock-pin b { color: var(--accent); font-weight: 500; }
+
+  .mock-h { color: var(--ink); letter-spacing: .08em; margin-bottom: 10px; }
+  .mock-line { height: 7px; background: var(--panel-2); margin-bottom: 7px; }
+  .mock-line.s { width: 62%; }
+  .mock-img {
+    height: 58px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    margin: 12px 0 8px;
+    display: grid;
+    place-items: center;
+    color: var(--ink-3);
+    font-size: 10px;
+    letter-spacing: .1em;
+  }
+  .mock-key { color: var(--accent); }
+
+  .caption {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    margin-top: 10px;
+    letter-spacing: .02em;
+  }
+
+  /* ---------- bloc staff ---------- */
+
+  .call {
+    border: 2px solid var(--accent);
+    background: var(--panel);
+    padding: 26px 24px 28px;
+  }
+
+  .call h3 { color: var(--accent); }
+
+  pre {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.65;
+    background: var(--panel-2);
+    border: 1px solid var(--line-soft);
+    padding: 16px;
+    overflow-x: auto;
+    margin: 18px 0 0;
+    color: var(--ink);
+  }
+  pre .c { color: var(--ink-3); }
+  pre .k { color: var(--accent); }
+
+  ul { margin: 0 0 14px; padding-left: 20px; max-width: 65ch; }
+  li { margin-bottom: 7px; }
+  li::marker { color: var(--accent); }
+
+  /* ---------- tableau ---------- */
+
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; background: var(--panel); }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  th {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  tr:last-child td { border-bottom: 0; }
+  td:first-child { white-space: nowrap; color: var(--ink-2); }
+
+  /* ---------- hors périmètre ---------- */
+
+  .nope { display: grid; gap: 14px; }
+  .nope div { border-left: 2px solid var(--line); padding-left: 14px; }
+  .nope b { font-weight: 600; display: block; margin-bottom: 2px; }
+  .nope span { color: var(--ink-2); font-size: 15px; }
+
+  /* ---------- étapes ---------- */
+
+  .steps { display: grid; gap: 0; }
+  .step {
+    display: grid;
+    grid-template-columns: 54px 1fr;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line-soft);
+    align-items: baseline;
+  }
+  .step:last-child { border-bottom: 0; }
+  .step .n {
+    font-family: var(--display);
+    font-size: 15px;
+    letter-spacing: .06em;
+    color: var(--accent);
+  }
+  .step .t { font-weight: 600; font-size: 15.5px; }
+  .step .d { color: var(--ink-2); font-size: 14.5px; margin-top: 2px; }
+  .step.now .t::after {
+    content: "en cours";
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ok);
+    margin-left: 9px;
+  }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink-3);
+    letter-spacing: .02em;
+  }
+
+  @media (min-width: 640px) {
+    .bricks { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  @media (max-width: 560px) {
+    .mock-body { grid-template-columns: 1fr; }
+    .mock-left { border-right: 0; border-bottom: 1px solid var(--line); }
+    .step { grid-template-columns: 42px 1fr; gap: 12px; }
+    .theme { position: static; display: block; margin: 0 0 24px auto; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <button class="theme" id="theme-toggle" type="button" aria-label="Changer de thème">Thème</button>
+
+  <p class="eyebrow">Projet interne · La Fistinière · Serveur Rust PVE</p>
+  <h1>Orlu<span class="tail">Codex</span></h1>
+  <p class="lede">
+    Un manuel intégré au jeu, qui explique le serveur au fur et à mesure au lieu
+    de servir un pavé de règles le jour de l'arrivée. L'architecture est reprise
+    du manuel de SCUM, qui fait ça mieux que n'importe quel survival.
+  </p>
+  <div class="rule"></div>
+
+  <section>
+    <h2>Le problème</h2>
+    <p>
+      Un nouveau joueur arrive sur La Fistinière, et tout ce qu'on a à lui donner,
+      c'est un lien Discord et un règlement. Il doit chercher, demander, ou abandonner.
+      Et c'est nous qui répondons quinze fois par semaine aux mêmes questions.
+    </p>
+    <p>
+      L'idée n'est pas d'écrire un règlement de plus. C'est de délivrer
+      <strong>la bonne information au moment où elle sert</strong>.
+    </p>
+  </section>
+
+  <section>
+    <h2>Trois systèmes, pas un écran de doc</h2>
+    <p>
+      C'est le point que tout le monde rate en copiant SCUM : ce n'est pas une page d'aide,
+      ce sont trois mécaniques distinctes dans une même fenêtre.
+    </p>
+    <div class="bricks">
+      <div class="brick">
+        <span class="tag">Le codex</span>
+        <p>
+          La documentation consultable. Un arbre de catégories, une recherche,
+          des articles avec du texte et des images.
+        </p>
+        <p><em>C'est la partie que vous allez écrire.</em></p>
+      </div>
+      <div class="brick">
+        <span class="tag">Les conseils</span>
+        <p>
+          Ils ne sont pas listés : ils <strong>se débloquent</strong>. Le joueur crafte
+          pour la première fois, une astuce discrète apparaît, et rejoint son panneau
+          personnel marquée non lue.
+        </p>
+        <p>Chacun a donc son propre manuel, rempli par ce qu'il a fait.</p>
+      </div>
+      <div class="brick">
+        <span class="tag">Les tutoriels</span>
+        <p>
+          Des parcours à étapes avec de vrais objectifs mesurés par le serveur :
+          récolter, fabriquer, construire, atteindre un lieu.
+        </p>
+        <p>La progression est sauvegardée et survit aux wipes.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>À quoi ça ressemble</h2>
+    <div class="mock" role="img" aria-label="Maquette de l'écran du manuel : onglets Tutoriels et Codex, recherche, arbre de catégories à gauche, contenu à droite, bouton Conseils de survie épinglé en bas.">
+      <div class="mock-bar"><span>OrluCodex</span><span>✕</span></div>
+      <div class="mock-body">
+        <div class="mock-left">
+          <div class="mock-tabs"><span>Tutoriels</span><span class="on">Codex</span></div>
+          <div class="mock-search">⌕ rechercher…</div>
+          <div class="mock-item">▸ Bienvenue</div>
+          <div class="mock-item sel">▾ Construction</div>
+          <div class="mock-item sub">• Poser un sas</div>
+          <div class="mock-item sub">• Armoire à outils</div>
+          <div class="mock-item">▸ Récolte</div>
+          <div class="mock-item">▸ Règles du serveur</div>
+          <div class="mock-pin"><span>⚑ Conseils de survie</span><b>3</b></div>
+        </div>
+        <div class="mock-right">
+          <div class="mock-h">POSER UN SAS</div>
+          <div class="mock-line"></div>
+          <div class="mock-line"></div>
+          <div class="mock-line s"></div>
+          <div class="mock-img">IMAGE</div>
+          <div class="mock-line"></div>
+          <div class="mock-line s"></div>
+          <div style="margin-top:12px">Touche <span class="mock-key">[E]</span> pour valider</div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">Schéma indicatif — disposition reprise du manuel de SCUM, aux couleurs de Rust.</p>
+  </section>
+
+  <section>
+    <h2>Ce qu'on attend de vous</h2>
+    <div class="call">
+      <h3>Écrire les articles du codex</h3>
+      <p>
+        Objectif : <strong>une dizaine de catégories, une soixantaine d'articles</strong>.
+        C'est la partie la plus longue du projet — plus longue que le développement du plugin lui-même.
+      </p>
+      <p>
+        Pas d'outil à apprendre, pas de compte à créer. Un article = un fichier texte,
+        que vous éditez depuis le gestionnaire de fichiers du panel, celui que vous utilisez déjà.
+      </p>
+      <pre><span class="c">oxide/data/OrluCodex/content/construction/poser-un-sas.md</span>
+
+<span class="k">---</span>
+<span class="k">titre:</span> Poser un sas
+<span class="k">ordre:</span> 20
+<span class="k">tags:</span> [base, débutant]
+<span class="k">---</span>
+
+Un sas empêche un raideur d'entrer directement chez vous.
+
+- Deux portes, jamais une seule
+- L'armoire à outils va au centre, pas contre un mur
+
+!attention Ne posez jamais votre sac de couchage dans le sas.
+
+!image sas-vue-interieure</pre>
+      <p style="margin-top:18px">
+        C'est tout. Le reste — mise en forme, couleurs, images, recherche — est géré par le plugin.
+        Une faute de frappe dans un fichier ne casse rien : il est simplement ignoré,
+        et le nom du fichier fautif s'affiche en console.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Écrire utile</h2>
+    <ul>
+      <li><strong>Un article répond à une question.</strong> « Poser un sas », pas « La construction ».</li>
+      <li><strong>Court.</strong> Ça se lit en jeu, sur un panneau, avec un ours qui arrive. Cinq lignes valent mieux que trente.</li>
+      <li><strong>Jamais de touche écrite en dur</strong> : on écrit <code>{key:E}</code>, et le plugin affiche la vraie touche du joueur.</li>
+      <li><strong>Évitez les chiffres du jeu</strong> (quantités, temps de craft) : ils changent à chaque mise à jour de Rust, et un manuel faux est pire qu'absent.</li>
+      <li><strong>Les règles du serveur, elles, sont à nous</strong> — c'est là qu'on est légitimes et qu'on économise le plus de support.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Ce qui est décidé</h2>
+    <div class="tablewrap">
+      <table>
+        <tr><th>Ouverture</th><td>Commande <code>/codex</code>, ou une touche au choix du joueur</td></tr>
+        <tr><th>Premier contact</th><td>Le manuel ne s'ouvre jamais tout seul. Un message discret signale son existence, une fois, deux minutes après la première connexion</td></tr>
+        <tr><th>Interruptions</th><td>Aucune astuce pendant un combat, ni dans la première minute de jeu. Le joueur peut tout couper avec <code>/codex tips 0</code></td></tr>
+        <tr><th>Au wipe</th><td>Les conseils se redébloquent, les tutoriels terminés restent acquis</td></tr>
+        <tr><th>Édition</th><td>Articles en fichiers ; conseils, tutoriels et ordre des catégories directement en jeu, en mode admin</td></tr>
+        <tr><th>Dépendances</th><td>Aucune. Ni site, ni base de données, ni autre plugin</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Ce qui n'est pas prévu</h2>
+    <div class="nope">
+      <div>
+        <b>Pas de vidéo</b>
+        <span>
+          L'interface de Rust n'a aucun lecteur vidéo et ne peut pas ouvrir de navigateur.
+          C'est une limite du moteur, pas un choix. On aura des images, et de courtes
+          séquences animées de trois secondes pour les gestes difficiles à décrire.
+        </span>
+      </div>
+      <div>
+        <b>Pas de site d'administration</b>
+        <span>
+          Ça aurait été le plus gros morceau du projet, pour rien : le panel de fichiers
+          fait déjà le travail pour les articles, et le reste s'édite en jeu.
+        </span>
+      </div>
+      <div>
+        <b>Pas de récompense de tutoriel, pour l'instant</b>
+        <span>
+          On mesure d'abord combien de joueurs les terminent. Récompenser en ressources
+          sur un serveur PVE, c'est inviter le multi-compte avant d'avoir la moindre donnée.
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Les étapes</h2>
+    <div class="steps">
+      <div class="step now">
+        <div class="n">J1</div>
+        <div>
+          <div class="t">Format et socle</div>
+          <div class="d">Structure des fichiers, catégories d'exemple. <strong>Dès que c'est posé, la rédaction peut commencer</strong> — elle n'attend rien d'autre.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="n">J2</div>
+        <div><div class="t">Le codex</div><div class="d">L'écran, l'arbre, la recherche, l'affichage des articles.</div></div>
+      </div>
+      <div class="step">
+        <div class="n">J3</div>
+        <div><div class="t">Images</div><div class="d">Dépôt des images, affichage, séquences animées.</div></div>
+      </div>
+      <div class="step">
+        <div class="n">J4</div>
+        <div><div class="t">Conseils</div><div class="d">Déclencheurs en jeu, notifications, panneau personnel.</div></div>
+      </div>
+      <div class="step">
+        <div class="n">J5</div>
+        <div><div class="t">Tutoriels</div><div class="d">Étapes, objectifs, progression.</div></div>
+      </div>
+      <div class="step">
+        <div class="n">J6</div>
+        <div><div class="t">Mode admin</div><div class="d">Édition des conseils et tutoriels sans quitter le jeu.</div></div>
+      </div>
+    </div>
+    <p style="margin-top:20px">
+      Le manuel n'attendra pas d'être complet pour sortir : trois catégories bien écrites
+      valent mieux qu'une sortie repoussée de deux mois. On le remplit ensuite.
+    </p>
+  </section>
+
+  <footer>
+    Document de travail interne — OrluCodex · révision du 19 septembre 2026<br>
+    Questions, remarques, volontaires pour la rédaction : sur le Discord staff.
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var btn = document.getElementById("theme-toggle");
+    var saved = null;
+
+    try { saved = localStorage.getItem("orlucodex-theme"); } catch (e) {}
+    if (saved === "dark" || saved === "light") root.setAttribute("data-theme", saved);
+
+    btn.addEventListener("click", function () {
+      var dark = root.getAttribute("data-theme") === "dark"
+        || (!root.hasAttribute("data-theme")
+            && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      var next = dark ? "light" : "dark";
+      root.setAttribute("data-theme", next);
+      try { localStorage.setItem("orlucodex-theme", next); } catch (e) {}
+    });
+  })();
+</script>
+
+</body>
+</html>
